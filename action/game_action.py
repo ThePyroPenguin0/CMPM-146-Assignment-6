@@ -5,6 +5,8 @@ class GameAction:
         self.card = card
     def __eq__(self, other):
         return self.card == other.card
+    def __hash__(self):
+        return hash(self.card)
     def key(self):
         if self.card is None:
             return ""

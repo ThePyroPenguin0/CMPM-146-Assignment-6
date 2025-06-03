@@ -36,11 +36,14 @@ class TreeNode:
     # best action from among state.get_actions()
     def get_best(self, state):
         available_actions = state.get_actions();
-        best_action = 0;
+        best_action = None;
+        best_score = float('-inf');
         for action in available_actions:
-            if action in self.children:
-                if self.children[action].results > best_action:
-                    best_action = self.children[action].results;
+            if action in self.children and self.children[action].results:
+                average_score = sum(self.children[action].results) / len(self.children[action].results);
+                if average_score > best_score:
+                    best_score = average_score;
+                    best_action = action;
             else:
                 self.expand(state, available_actions);
         return best_action;
@@ -83,8 +86,8 @@ class TreeNode:
         best_action = max(ucb_values, key=ucb_values.get);
         best_child = self.children[best_action];
 
-        next_state = state.copy();
-        next_state.appply_action(best_action);
+        next_state = state;
+        next_state.step(best_action);
         best_child.select(next_state);
         pass
 
@@ -95,18 +98,19 @@ class TreeNode:
         unexplored_actions = [a for a in available if a not in self.children];
         action = random.choice(unexplored_actions);
         self.children[action] = TreeNode(self.param, self);
-        self.children[action].rollout(state.apply_action(action));
-        pass 
-
+        next_state = state;
+        next_state.step(action);
+        self.children[action].rollout(next_state);
+        pass
     # RECOMMENDED: rollout plays the game randomly until its conclusion, and then 
     # calls backpropagate with the result you get 
     def rollout(self, state):
-        while not state.is_terminal():
+        while not state.ended():
             actions = state.get_actions();
             action = random.choice(actions);
-            state.apply_action(action);
+            state.step(action);
         result = self.score(state);
-        self.backpropagate(self, result);
+        self.backpropagate(result);
         pass
         
     # RECOMMENDED: backpropagate records the score you got in the current node, and 

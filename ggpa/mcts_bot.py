@@ -88,12 +88,8 @@ class TreeNode:
         best_action = max(ucb_values, key=ucb_values.get)
         best_child = self.children[best_action]
 
-        next_state = deepcopy(state)
-        if next_state is None:
-            return
-        next_state.step(best_action)
-        best_child.select(next_state)
-        
+        state.step(best_action)
+        best_child.select(state)
 
     # RECOMMENDED: expand takes the available actions, and picks one at random,
     # adds a child node corresponding to that action, applies the action ot the state

@@ -1,7 +1,10 @@
 from __future__ import annotations
 import math
 from copy import deepcopy
+from re import S
 import time
+from unittest import result
+from action import action
 from agent import Agent
 from battle import BattleState
 from card import Card
@@ -32,14 +35,26 @@ class TreeNode:
     # Called after all iterations are done; should return the 
     # best action from among state.get_actions()
     def get_best(self, state):
-        return random.choice(state.get_actions())
+        available_actions = state.get_actions()
+        best_action = 0;
+        for action in available_actions:
+            if action in self.children:
+                if self.children[action].results > best_action:
+                    best_action = self.children[action].results
+            else:
+                self.expand(state, available_actions)
+        # get available actions from the state
+        # for action in state.get_actions()
+        #     if action in self.children:
+        #         return self.results[] average score for that action
+        return best_action
         
     # REQUIRED function (implementation optional, but *very* helpful for debugging)
     # Called after all iterations when the -v command line parameter is present
     def print_tree(self, indent = 0):
-        # print current node stats w/ indentation
-        # for every child in self.children
-            # child.print_tree(indent + 1)
+        print(indent * " " + "Parameters: " + self.param + "\nChildren: " + self.children)
+        for child in self.children:
+            self.children[child].print_tree(self.children[child], indent + 1)
         pass
 
 
@@ -49,30 +64,36 @@ class TreeNode:
     # Otherwise, pick a child node according to your selection criterion (e.g. UCB-1)
     # apply its action to the state and recursively call select on that child node.
     def select(self, state):
-        # available_actions = state.get_actions()
-        # unxplored_actions = [a for a in available_actions if a not in self.children]
-        # if unxplored_actions:
-        #     self.expand(state, available_actions)
-        # else:
-        #     get_best(self, state)
-        #     choose_card(self, state, available_actions)
-        #     state.apply_action(action)
-        #     self.child.select(state)
+        available_actions = state.get_actions()
+        unexplored_actions = [a for a in available_actions if a not in self.children]
+        if unexplored_actions:
+            self.expand(state, available_actions)
+        else:
+            self.get_best(self, state) # to do
+            MCTSAgent.choose_card(self, state, available_actions)
+            state.apply_action(action)
+            self.child.select(state)
         pass
 
     # RECOMMENDED: expand takes the available actions, and picks one at random,
     # adds a child node corresponding to that action, applies the action ot the state
     # and then calls rollout on that new node
     def expand(self, state, available):
-        # unexplored_actions = [a for a in available if a not in self.children]
-        # action = random.choice(unexplored_actions)
-        # self.children[action] = TreeNode(self.param, self)
-        # self.children[action].rollout(state.apply_action(action))
+        unexplored_actions = [a for a in available if a not in self.children]
+        action = random.choice(unexplored_actions)
+        self.children[action] = TreeNode(self.param, self)
+        self.children[action].rollout(state.apply_action(action))
         pass 
 
     # RECOMMENDED: rollout plays the game randomly until its conclusion, and then 
     # calls backpropagate with the result you get 
     def rollout(self, state):
+        while not state.is_terminal():
+            actions = state.get_actions()
+            action = random.choice(actions)
+            state.apply_action(action)
+        result = self.score(state)
+        self.backpropagate(self, result) # todo
         # no idea if this is right or not, might be totally wrong
         # while state!= state.is_terminal():
         #     actions = state.get_actions()
@@ -87,9 +108,12 @@ class TreeNode:
     # If you record scores in a list, you can use sum(self.results)/len(self.results)
     # to get an average.
     def backpropagate(self, result):
+        self.results.append(result)
+        if self.parent != None:
+            self.parent.backpropagate(result)
         # self.results.append(result)
         # if self.parent != None:
-        #     self.parent.backpropagate(result)
+        #     self.parent.backpropagate(result) 
         pass
         
     # RECOMMENDED: You can start by just using state.score() as the actual value you are 

@@ -66,12 +66,11 @@ class TreeNode:
         available_actions = state.get_actions();
         unexplored_actions = [a for a in available_actions if a not in self.children];
         if unexplored_actions:
-            self.expand(state, available_actions);
+            self.expand(state, unexplored_actions);
             return
         total_visits = sum(len(child.results) for child in self.children.values());
         log_total = math.log(total_visits) if total_visits > 0 else 0;
 
-        # UCB-1 implementation below
         ucb_values = {};
         for action, child in self.children.items():
             n = len(child.results);
@@ -86,10 +85,8 @@ class TreeNode:
         best_action = max(ucb_values, key=ucb_values.get);
         best_child = self.children[best_action];
 
-        next_state = state;
-        next_state.step(best_action);
-        best_child.select(next_state);
-        pass
+        state.step(best_action);
+        best_child.select(state);
 
     # RECOMMENDED: expand takes the available actions, and picks one at random,
     # adds a child node corresponding to that action, applies the action ot the state

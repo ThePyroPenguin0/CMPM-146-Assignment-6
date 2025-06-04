@@ -51,7 +51,7 @@ class TreeNode:
     # REQUIRED function (implementation optional, but *very* helpful for debugging)
     # Called after all iterations when the -v command line parameter is present
     def print_tree(self, indent = 0):
-        print(f"{' ' * indent}Parameters: {self.param}, Results: {self.results}, Children: {len(self.children)}")
+        print(f"{' ' * indent}Results: {self.results}, Children: {len(self.children)}")
         for action, child in self.children.items():
             print(f"{' ' * (indent + 2)}Action: {action}")
             child.print_tree(indent + 4)
@@ -70,8 +70,6 @@ class TreeNode:
         if unexplored_actions:
             self.expand(state, available_actions)
             return
-        total_visits = sum(len(child.results) for child in self.children.values())
-        log_total = math.log(total_visits) if total_visits > 0 else 0
 
         # UCB-1 implementation below
         ucb_values = {}
@@ -84,12 +82,25 @@ class TreeNode:
             else:
                 average = sum(child.results) / n
                 ucb_values[action] = average + self.param * math.sqrt(log_total/n)
+
+        if not ucb_values:
+            # can't find max if there are not ucb_values. Run away!
+            return
         
         best_action = max(ucb_values, key=ucb_values.get)
+        if best_action not in state.get_actions():
+            # best_action is not a valid action. Run away!
+            return
         best_child = self.children[best_action]
 
-        state.step(best_action)
-        best_child.select(state)
+        next_state = deepcopy(state)
+        # Find the equivalent action in the copied state
+        actions = next_state.get_actions()
+        for a in actions:
+            if a == best_action:
+                next_state.step(a)
+                best_child.select(next_state)
+                break
 
     # RECOMMENDED: expand takes the available actions, and picks one at random,
     # adds a child node corresponding to that action, applies the action ot the state

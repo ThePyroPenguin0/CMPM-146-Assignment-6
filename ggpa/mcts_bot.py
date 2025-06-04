@@ -24,6 +24,7 @@ class TreeNode:
         self.children = {}
         self.parent = parent
         self.results = []
+        self.visits = 0  # Add this line
         self.param = param
     
     # REQUIRED function
@@ -63,7 +64,7 @@ class TreeNode:
     # Otherwise, pick a child node according to your selection criterion (e.g. UCB-1)
     # apply its action to the state and recursively call select on that child node.
     def select(self, state):
-        if state is None:
+        if state is None or state.ended():
             return
         available_actions = state.get_actions()
         unexplored_actions = [a for a in available_actions if a not in self.children]
@@ -73,15 +74,15 @@ class TreeNode:
 
         # UCB-1 implementation below
         ucb_values = {}
-        total_visits = sum(len(c.results) for c in self.children.values())
+        total_visits = self.visits
         log_total = math.log(total_visits) if total_visits > 0 else 0
         for action, child in self.children.items():
-            n = len(child.results)
+            n = child.visits
             if n == 0:
                 ucb_values[action] = float('inf')
             else:
                 average = sum(child.results) / n
-                ucb_values[action] = average + self.param * math.sqrt(log_total/n)
+                ucb_values[action] = average + self.param * math.sqrt(log_total / n)
 
         if not ucb_values:
             # can't find max if there are not ucb_values. Run away!
@@ -117,11 +118,13 @@ class TreeNode:
         
     # RECOMMENDED: rollout plays the game randomly until its conclusion, and then 
     # calls backpropagate with the result you get 
+    # current version uses a heuristic instead of making random decisions
     def rollout(self, state):
         while not state.ended():
             actions = state.get_actions()
-            action = random.choice(actions)
-            state.step(action)
+            # best_action prefers to damage the player, random if it can't
+            best_action = max(actions, key=lambda a: getattr(a, 'damage', 0), default=random.choice(actions))
+            state.step(best_action)
         result = self.score(state)
         self.backpropagate(result)
         
@@ -132,7 +135,8 @@ class TreeNode:
     # to get an average.
     def backpropagate(self, result):
         self.results.append(result)
-        if self.parent != None:
+        self.visits += 1  # Increment visits
+        if self.parent is not None:
             self.parent.backpropagate(result)
         
         
